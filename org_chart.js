@@ -1,6 +1,11 @@
 /**
  * =============================================================================
- *  Organigrama Keralty · Looker Visualization (API 2.0) - Fix Layout Horizontal
+ *  Organigrama Keralty · Looker Visualization (API 2.0) — v3
+ *
+ *  Campos que debe traer el explore (los nombres se leen exactos, sin importar el orden):
+ *    colaborador_id, nombre_completo, jefe_directo      (obligatorios)
+ *    rol_equipo, nivel_jerarquico, cargo, correo_keralty, cuenta_en_equipo   (opcionales)
+ *  jefe_keralty (jefe del lado Keralty) se ignora: no es la jerarquía del equipo.
  * =============================================================================
  */
 looker.plugins.visualizations.add({
@@ -50,11 +55,11 @@ looker.plugins.visualizations.add({
           --koc-card-w: 210px;
         }
 
-        /* Toolbar Superior */
+        /* Toolbar superior (el contenedor es el que queda fijo al hacer scroll) */
+        .koc-toolbar-wrap { position: sticky; top: 0; left: 0; z-index: 10; }
         .koc-toolbar {
-          position: sticky; top: 0; left: 0; z-index: 10;
           display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px);
           padding: 12px 20px; border-bottom: 1px solid #E2E8F0;
         }
         .koc-title { font-size: 14px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px; }
@@ -62,43 +67,51 @@ looker.plugins.visualizations.add({
         .koc-stats { display: flex; gap: 8px; }
         .koc-chip { background: #F1F5F9; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #475569; }
 
-        /* Lienzo y Estructura en Árbol */
+        /* Lienzo y árbol */
         .koc-canvas {
           min-width: max-content; padding: 40px 20px;
           display: flex; justify-content: center; align-items: flex-start;
         }
-        .koc-tree { display: flex; flex-direction: column; align-items: center; }
+        .koc-tree { display: flex; flex-direction: row; align-items: flex-start; gap: 24px; }
 
-        .koc-subtree {
-          display: flex; flex-direction: column; align-items: center; position: relative;
-        }
+        .koc-subtree { display: flex; flex-direction: column; align-items: center; position: relative; }
 
+        /* Fila de tarjetas de un nodo (1 tarjeta, o 2+ cuando son jefes compartidos) */
         .koc-node {
-          position: relative; display: flex; flex-direction: column; align-items: center;
+          position: relative; display: flex; flex-direction: row; align-items: flex-start;
+          justify-content: center; gap: 12px;
         }
 
-        /* Ramas / Hijos en Horizontal */
         .koc-children {
           display: flex; flex-direction: row; align-items: flex-start; justify-content: center;
-          position: relative; margin-top: 20px;
-        }
-        .koc-children > .koc-subtree { margin: 0 12px; }
-
-        /* Conectores / Líneas */
-        .koc-root[data-conn="elbow"] .koc-node::after {
-          content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-          width: 2px; height: 20px; background: var(--koc-line);
-        }
-        .koc-root[data-conn="elbow"] .koc-children::before {
-          content: ''; position: absolute; top: -20px; left: 0; right: 0; height: 2px;
-          background: var(--koc-line);
-        }
-        .koc-root[data-conn="elbow"] .koc-children > .koc-subtree::before {
-          content: ''; position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
-          width: 2px; height: 20px; background: var(--koc-line);
+          margin-top: 20px;
         }
 
-        /* Estilos de Tarjeta */
+        /* ---- Conectores ---- */
+        /* Línea vertical que baja del padre: solo si tiene hijos */
+        .koc-has-kids > .koc-node::after {
+          content: ''; position: absolute; top: 100%; left: 50%; width: 2px; height: 20px;
+          margin-left: -1px; background: var(--koc-line);
+        }
+        /* Cada hijo dibuja su mitad izquierda y derecha de la barra horizontal + su bajante */
+        .koc-children > .koc-subtree { padding: 20px 12px 0; }
+        .koc-children > .koc-subtree::before,
+        .koc-children > .koc-subtree::after {
+          content: ''; position: absolute; top: 0; width: 50%; height: 20px;
+          border-top: 2px solid var(--koc-line);
+        }
+        .koc-children > .koc-subtree::before { right: 50%; }
+        .koc-children > .koc-subtree::after  { left: 50%; border-left: 2px solid var(--koc-line); margin-left: -1px; }
+        .koc-children > .koc-subtree:first-child::before { border-top: 0; }
+        .koc-children > .koc-subtree:last-child::after   { border-top: 0; }
+        .koc-children > .koc-subtree:only-child::before  { display: none; }
+        /* Curvas suaves: redondea las esquinas de la barra */
+        .koc-root[data-conn="curve"] .koc-children > .koc-subtree:last-child::before  { border-right: 2px solid var(--koc-line); border-radius: 0 12px 0 0; }
+        .koc-root[data-conn="curve"] .koc-children > .koc-subtree:first-child::after  { border-top: 2px solid var(--koc-line); border-radius: 12px 0 0 0; }
+        .koc-root[data-conn="curve"] .koc-children > .koc-subtree:only-child::after   { border-radius: 0; border-top: 0; }
+        .koc-root[data-conn="curve"] .koc-children > .koc-subtree:last-child::after   { border-radius: 0; }
+
+        /* ---- Tarjetas ---- */
         .koc-card {
           width: var(--koc-card-w); border-radius: 12px; padding: 14px; text-align: center;
           background: #FFFFFF; border: 1px solid #E2E8F0;
@@ -109,6 +122,8 @@ looker.plugins.visualizations.add({
           background: rgba(255, 255, 255, 0.95);
           border-top: 4px solid var(--koc-level, var(--koc-accent));
         }
+        .koc-root[data-card="modern"] .koc-card { border-left: 4px solid var(--koc-level, var(--koc-accent)); text-align: left; }
+        .koc-root[data-card="minimal"] .koc-card { box-shadow: none; border-color: var(--koc-level, var(--koc-accent)); }
         .koc-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1); }
 
         .koc-badge {
@@ -127,11 +142,11 @@ looker.plugins.visualizations.add({
           margin: 0 auto 6px auto; font-size: 14px; font-weight: 700;
         }
         .koc-name { font-size: 12.5px; font-weight: 700; color: var(--koc-text); line-height: 1.2; }
-        .koc-meta { font-size: 10.5px; color: var(--koc-muted); margin-top: 3px; }
+        .koc-meta { font-size: 10.5px; color: var(--koc-muted); margin-top: 3px; word-break: break-word; }
       </style>
 
       <div class="koc-root" id="koc-root" data-conn="elbow" data-card="glass">
-        <div id="koc-toolbar-container"></div>
+        <div class="koc-toolbar-wrap" id="koc-toolbar-container"></div>
         <div class="koc-canvas">
           <div id="koc-body"></div>
         </div>
@@ -164,6 +179,15 @@ looker.plugins.visualizations.add({
       root.style.setProperty("--koc-card-w", CARD_W + "px");
 
       var fields = pickFields(queryResponse);
+      if (!fields.key || !fields.name || !fields.bossName) {
+        self.addError({
+          title: "Faltan campos en la consulta",
+          message: "Agrega al explore: colaborador_id, nombre_completo y jefe_directo " +
+                   "(opcionales: rol_equipo, nivel_jerarquico, cargo, correo_keralty, cuenta_en_equipo)."
+        });
+        done(); return;
+      }
+
       var nodes = {}, aliasIndex = {}, parentOf = {}, roots = [];
 
       data.forEach(function (row) {
@@ -171,45 +195,70 @@ looker.plugins.visualizations.add({
         if (!key) return;
 
         var name = str(cellValue(row, fields.name));
-        var bossKey = str(cellValue(row, fields.bossKey));
-        var bossName = str(cellValue(row, fields.bossName));
-
         nodes[key] = {
           key: key,
           name: name || prettifyKey(key),
-          bossKey: bossKey,
-          bossName: bossName,
+          bossKey: str(cellValue(row, fields.bossKey)),
+          bossName: str(cellValue(row, fields.bossName)),
           cargo: str(cellValue(row, fields.cargo)),
           role: str(cellValue(row, fields.role)),
           level: num(cellValue(row, fields.level), null),
           email: str(cellValue(row, fields.email)),
+          counts: toBool(cellValue(row, fields.counts)),
           children: []
         };
-
-        registerAlias(aliasIndex, name, key);
+        registerAlias(aliasIndex, nodes[key].name, key);
       });
 
-      // Resolución de jefes (soporta nombres concatenados "A y B")
+      // ---- Resolución de jefes (soporta jefes compartidos "A y B") ----
+      var groups = {}, memberGroup = {};
       Object.keys(nodes).forEach(function (k) {
-        var parentKey = resolveParent(nodes[k], nodes, aliasIndex);
-        if (parentKey && parentKey !== k) {
-          parentOf[k] = parentKey;
+        var ps = resolveParents(nodes[k], nodes, aliasIndex).filter(function (p) { return p !== k; });
+        if (ps.length === 1) {
+          parentOf[k] = ps[0];
+        } else if (ps.length > 1) {
+          var gk = "grp:" + ps.slice().sort().join("+");
+          if (!groups[gk]) {
+            groups[gk] = {
+              key: gk, isGroup: true, children: [], level: null,
+              members: ps.map(function (p) { return nodes[p]; })
+            };
+            ps.forEach(function (p) { if (!memberGroup[p]) memberGroup[p] = gk; });
+          }
+          parentOf[k] = gk;
         }
       });
-
-      // Construcción de la jerarquía
-      Object.keys(nodes).forEach(function (k) {
-        var parentKey = parentOf[k];
-        if (parentKey && nodes[parentKey]) {
-          nodes[parentKey].children.push(nodes[k]);
-        } else {
-          roots.push(nodes[k]);
-        }
+      // El grupo cuelga del jefe de sus miembros
+      Object.keys(groups).forEach(function (gk) {
+        var first = groups[gk].members[0];
+        if (parentOf[first.key]) parentOf[gk] = parentOf[first.key];
       });
 
-      var levelMap = computeLevels(nodes, roots);
+      // ---- Construcción de la jerarquía ----
+      function attach(child, parentKey) {
+        var p = parentKey && (nodes[parentKey] || groups[parentKey]);
+        if (p) p.children.push(child); else roots.push(child);
+      }
       Object.keys(nodes).forEach(function (k) {
-        if (!nodes[k].level) nodes[k].level = levelMap[k];
+        if (memberGroup[k]) return;                 // se dibuja dentro de su grupo
+        attach(nodes[k], parentOf[k]);
+      });
+      Object.keys(groups).forEach(function (gk) {
+        var g = groups[gk];
+        g.members.forEach(function (m) {            // hijos propios de los miembros se suman al grupo
+          g.children = g.children.concat(m.children);
+          m.children = [];
+        });
+        attach(g, parentOf[gk]);
+      });
+
+      // ---- Niveles (y rescate de nodos que quedaron fuera por ciclos) ----
+      var levelMap = computeLevels(roots);
+      Object.keys(nodes).forEach(function (k) {
+        if (levelMap[k] === undefined) { roots.push(nodes[k]); levelMap = computeLevels(roots); }
+      });
+      Object.keys(nodes).forEach(function (k) {
+        if (!nodes[k].level) nodes[k].level = levelMap[k] || 1;
       });
 
       var maxLevel = 1;
@@ -220,18 +269,19 @@ looker.plugins.visualizations.add({
         palette[L] = mix(LEVEL_COLOR, "#FFFFFF", Math.min(0.5, (L - 1) * 0.15));
       }
 
+      var counted = Object.keys(nodes).filter(function (k) { return nodes[k].counts !== false; }).length;
+
       toolbar.innerHTML = `
         <div class="koc-toolbar">
           <span class="koc-title">Organigrama del Equipo</span>
           <div class="koc-stats">
-            <span class="koc-chip">Colaboradores: <b>${Object.keys(nodes).length}</b></span>
+            <span class="koc-chip">Colaboradores: <b>${counted}</b></span>
             <span class="koc-chip">Niveles: <b>${maxLevel}</b></span>
           </div>
         </div>`;
 
-      body.innerHTML = '<div class="koc-tree">' + roots.map(function (r) {
-        return renderNode(r, { palette: palette, showBossName: config.showBossName, showEmail: config.showEmail });
-      }).join("") + '</div>';
+      var opts = { palette: palette, showBossName: config.showBossName, showEmail: config.showEmail, seen: {} };
+      body.innerHTML = '<div class="koc-tree">' + roots.map(function (r) { return renderNode(r, opts); }).join("") + '</div>';
 
     } catch (err) {
       self.addError({ title: "Error al renderizar", message: String(err) });
@@ -240,90 +290,112 @@ looker.plugins.visualizations.add({
   }
 });
 
-/* Helper Functions */
+/* ============================ Helpers ============================ */
+
+// Busca cada campo por su nombre EXACTO (ignora el prefijo "vista."), sin depender del orden ni de coincidencias parciales
 function pickFields(qr) {
-  var dims = (qr && qr.fields && qr.fields.dimensions) || [];
-  var map = {};
+  var f = (qr && qr.fields) || {};
+  var all = (f.dimensions || []).concat(f.measures || []);
+  var byShort = {};
+  all.forEach(function (d) { byShort[String(d.name).split(".").pop().toLowerCase()] = d.name; });
 
-  dims.forEach(function (d) {
-    var n = d.name.toLowerCase();
-    if (n.includes("colaborador_id") || n.includes("id")) map.key = d.name;
-    else if (n.includes("nombre_completo") || n.includes("colaborador")) map.name = d.name;
-    else if (n.includes("jefe_directo_id") || n.includes("jefe_id")) map.bossKey = d.name;
-    else if (n.includes("jefe_directo") || n.includes("jefe")) map.bossName = d.name;
-    else if (n.includes("cargo")) map.cargo = d.name;
-    else if (n.includes("rol_equipo") || n.includes("rol")) map.role = d.name;
-    else if (n.includes("nivel_jerarquico") || n.includes("nivel")) map.level = d.name;
-    else if (n.includes("correo")) map.email = d.name;
-  });
-
-  if (!map.key && dims[0]) map.key = dims[0].name;
-  if (!map.name && dims[1]) map.name = dims[1].name;
-  if (!map.bossName && dims[2]) map.bossName = dims[2].name;
-
-  return map;
+  return {
+    key: byShort["colaborador_id"],
+    name: byShort["nombre_completo"],
+    bossKey: byShort["jefe_directo_id"],
+    bossName: byShort["jefe_directo"],
+    cargo: byShort["cargo"],
+    role: byShort["rol_equipo"],
+    level: byShort["nivel_jerarquico"],
+    email: byShort["correo_keralty"],
+    counts: byShort["cuenta_en_equipo"]
+  };
 }
 
-function resolveParent(node, nodes, index) {
-  if (node.bossKey && nodes[node.bossKey]) return node.bossKey;
+// Devuelve TODOS los jefes encontrados (uno o varios)
+function resolveParents(node, nodes, index) {
+  if (node.bossKey && nodes[node.bossKey]) return [node.bossKey];
 
   var bossStr = node.bossName || node.bossKey;
-  if (!bossStr) return null;
+  if (!bossStr) return [];
 
-  // Separar "A y B" o "A / B"
-  var parts = bossStr.split(/\s*,\s*|\s+y\s+|\s*\/\s*/i);
-  for (var i = 0; i < parts.length; i++) {
-    var name = parts[i].trim().toLowerCase();
-    if (index[name]) return index[name];
-  }
+  var whole = index[norm(bossStr)];
+  if (whole) return [whole];
 
-  return null;
+  var out = [];
+  bossStr.split(/\s*,\s*|\s+y\s+|\s*\/\s*|\s*&\s*/i).forEach(function (p) {
+    var k = index[norm(p)];
+    if (k && out.indexOf(k) === -1) out.push(k);
+  });
+  return out;
+}
+
+function sortKey(n) { return n.isGroup ? (n.members[0].name || "") : (n.name || ""); }
+
+function cardHtml(node, opts) {
+  var color = opts.palette[node.level] || opts.palette[1] || "#002B49";
+  var badge = node.role || node.cargo || "";
+  return `
+    <div class="koc-card" style="--koc-level: ${color}">
+      ${badge ? `<div class="koc-badge">${esc(badge)}</div>` : ''}
+      <div class="koc-avatar">${esc(initialsFrom(node.name))}</div>
+      <div class="koc-name">${esc(node.name)}</div>
+      ${opts.showBossName && node.bossName ? `<div class="koc-meta">Jefe: ${esc(node.bossName)}</div>` : ''}
+      ${opts.showEmail && node.email ? `<div class="koc-meta">${esc(node.email)}</div>` : ''}
+    </div>`;
 }
 
 function renderNode(node, opts) {
-  var color = opts.palette[node.level] || "#002B49";
-  var badge = node.role || node.cargo || "";
-  var initials = initialsFrom(node.name);
+  if (opts.seen[node.key]) return "";               // protección contra ciclos
+  opts.seen[node.key] = true;
 
-  var html = `
-    <div class="koc-subtree">
-      <div class="koc-node">
-        <div class="koc-card" style="--koc-level: ${color}">
-          ${badge ? `<div class="koc-badge">${esc(badge)}</div>` : ''}
-          <div class="koc-avatar">${esc(initials)}</div>
-          <div class="koc-name">${esc(node.name)}</div>
-          ${opts.showBossName && node.bossName ? `<div class="koc-meta">Jefe: ${esc(node.bossName)}</div>` : ''}
-          ${opts.showEmail && node.email ? `<div class="koc-meta">${esc(node.email)}</div>` : ''}
-        </div>
-      </div>`;
+  var kids = (node.children || []).slice()
+    .sort(function (a, b) { return sortKey(a).localeCompare(sortKey(b)); })
+    .map(function (c) { return renderNode(c, opts); })
+    .filter(Boolean);
 
-  if (node.children && node.children.length > 0) {
-    html += `<div class="koc-children">` +
-      node.children.map(function (c) { return renderNode(c, opts); }).join("") +
-      `</div>`;
-  }
+  var cards = node.isGroup
+    ? node.members.map(function (m) { return cardHtml(m, opts); }).join("")
+    : cardHtml(node, opts);
 
-  html += `</div>`;
-  return html;
+  return '<div class="koc-subtree' + (kids.length ? ' koc-has-kids' : '') + '">' +
+           '<div class="koc-node' + (node.isGroup ? ' koc-group' : '') + '">' + cards + '</div>' +
+           (kids.length ? '<div class="koc-children">' + kids.join("") + '</div>' : '') +
+         '</div>';
 }
 
-function computeLevels(nodes, roots) {
-  var lvl = {};
+function computeLevels(roots) {
+  var lvl = {}, seen = {};
   function walk(n, l) {
-    lvl[n.key] = l;
+    if (seen[n.key]) return;
+    seen[n.key] = true;
+    if (n.isGroup) n.members.forEach(function (m) { lvl[m.key] = l; });
+    else lvl[n.key] = l;
     (n.children || []).forEach(function (c) { walk(c, l + 1); });
   }
   roots.forEach(function (r) { walk(r, 1); });
   return lvl;
 }
 
-function registerAlias(idx, name, key) {
-  if (name) idx[name.trim().toLowerCase()] = key;
+function norm(s) {
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 }
-
+function registerAlias(idx, name, key) { if (name) idx[norm(name)] = key; }
+function toBool(v) {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "boolean") return v;
+  var s = String(v).toLowerCase();
+  if (s === "true" || s === "yes" || s === "si" || s === "sí" || s === "1") return true;
+  if (s === "false" || s === "no" || s === "0") return false;
+  return null;
+}
 function cellValue(row, field) { return row && field && row[field] ? row[field].value : null; }
-function str(v) { return v ? String(v).trim() : ""; }
-function num(v, fb) { var n = Number(v); return isFinite(n) ? n : fb; }
+function str(v) { return v === null || v === undefined ? "" : String(v).trim(); }
+function num(v, fb) {
+  if (v === null || v === undefined || v === "") return fb;
+  var n = Number(v);
+  return isFinite(n) ? n : fb;
+}
 function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
 function safeColor(v, fb) { return /^#([0-9a-f]{3,8})$/i.test(v) ? v : fb; }
 function esc(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
