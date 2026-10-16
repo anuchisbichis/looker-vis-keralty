@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- *  Organigrama Keralty · Looker Visualization (API 2.0) — v3
+ *  Organigrama Keralty · Looker Visualization (API 2.0) — v4
  *
  *  Campos que debe traer el explore (los nombres se leen exactos, sin importar el orden):
  *    colaborador_id, nombre_completo, jefe_directo      (obligatorios)
@@ -9,7 +9,7 @@
  * =============================================================================
  */
 looker.plugins.visualizations.add({
-  id: "keralty_org_chart",
+  id: "org_chart",
   label: "Organigrama Keralty (Pro)",
 
   options: {
@@ -66,6 +66,12 @@ looker.plugins.visualizations.add({
         .koc-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--koc-accent); }
         .koc-stats { display: flex; gap: 8px; }
         .koc-chip { background: #F1F5F9; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #475569; }
+
+        /* Blindaje: nada del árbol puede encogerse (evita tarjetas montadas si el host reduce anchos) */
+        .koc-tree, .koc-subtree, .koc-node, .koc-children, .koc-card { flex: 0 0 auto; }
+        .koc-card { min-width: var(--koc-card-w); max-width: var(--koc-card-w); }
+        .koc-subtree, .koc-node, .koc-children { min-width: max-content; }
+        .koc-canvas > * { flex: 0 0 auto; }
 
         /* Lienzo y árbol */
         .koc-canvas {
@@ -277,6 +283,7 @@ looker.plugins.visualizations.add({
           <div class="koc-stats">
             <span class="koc-chip">Colaboradores: <b>${counted}</b></span>
             <span class="koc-chip">Niveles: <b>${maxLevel}</b></span>
+            <span class="koc-chip">v4</span>
           </div>
         </div>`;
 
