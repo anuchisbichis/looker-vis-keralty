@@ -1,7 +1,8 @@
 /**
  * =============================================================================
- *  Organigrama Keralty · Looker Visualization (API 2.0) — v5
+ *  Organigrama Keralty · Looker Visualization (API 2.0) — v5.1
  *  Layout calculado en JS + conectores SVG (ya no depende de CSS flex anidado)
+ *  v5.1: muestra el cargo debajo del nombre
  *
  *  Campos del explore (nombre exacto, sin importar el orden):
  *    colaborador_id, nombre_completo, jefe_directo      (obligatorios)
@@ -113,6 +114,10 @@ looker.plugins.visualizations.add({
         }
         .koc-name {
           font-size: 12.5px; font-weight: 700; color: var(--koc-text); line-height: 1.25;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .koc-cargo {
+          font-size: 11px; font-weight: 500; color: var(--koc-muted); margin-top: 3px; line-height: 1.25;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .koc-meta { font-size: 10.5px; color: var(--koc-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -237,7 +242,7 @@ looker.plugins.visualizations.add({
 
       /* ---------- 4. Layout calculado ---------- */
       var showBoss = !!config.showBossName, showMail = !!config.showEmail;
-      var CARD_H = 124 + (showBoss ? 15 : 0) + (showMail ? 15 : 0);
+      var CARD_H = 152 + (showBoss ? 15 : 0) + (showMail ? 15 : 0);
       var HGAP = 24, VGAP = 64, ROW_GAP = 40, MEMBER_GAP = 12, GROUP_PAD = 10, MARGIN = 16;
       var leafCols = Math.max(0, Math.floor(num(config.leafCols, 6)));
       if (leafCols > 1 && leafCols % 2 === 1) leafCols++;   // par: el tronco pasa por el hueco central
@@ -462,12 +467,13 @@ function sortKey(n) { return n.isGroup ? (n.members[0].name || "") : (n.name || 
 
 function cardHtml(node, opts, left, top, w, h) {
   var color = opts.palette[node.level] || opts.palette[1] || "#002B49";
-  var badge = node.role || node.cargo || "";
+  var badge = node.role || "";
   return '<div class="koc-card" style="--koc-level:' + color + ';left:' + left + 'px;top:' + top +
          'px;width:' + w + 'px;height:' + h + 'px" title="' + esc(node.name) + '">' +
            (badge ? '<div class="koc-badge">' + esc(badge) + '</div>' : '') +
            '<div class="koc-avatar">' + esc(initialsFrom(node.name)) + '</div>' +
            '<div class="koc-name">' + esc(node.name) + '</div>' +
+           (node.cargo ? '<div class="koc-cargo" title="' + esc(node.cargo) + '">' + esc(node.cargo) + '</div>' : '') +
            (opts.showBossName && node.bossName ? '<div class="koc-meta" title="' + esc(node.bossName) + '">Jefe: ' + esc(node.bossName) + '</div>' : '') +
            (opts.showEmail && node.email ? '<div class="koc-meta">' + esc(node.email) + '</div>' : '') +
          '</div>';
